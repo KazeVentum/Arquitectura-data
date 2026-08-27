@@ -1,52 +1,138 @@
--- Carga de datos desde municipios.csv hacia las tablas normalizadas
-USE municipios;
+USE colombia;
 
--- Tabla temporal para leer el CSV
-CREATE TABLE staging_municipios (
-	region VARCHAR (50) NOT NULL,
-	departamento_id VARCHAR (2) NOT NULL,
-	departamento_nombre VARCHAR (60) NOT NULL,
-	municipio_id VARCHAR (10) NOT NULL,
-	municipio_nombre VARCHAR (30) NOT NULL
-);
+-- ============================================================
+-- CONFIGURACIÓN INICIAL (Permisos para leer el CSV)
+-- ============================================================
+SET GLOBAL local_infile = 1;
 
-
+-- ============================================================
+-- 1. CARGAR REGIONES
+-- ============================================================
 LOAD DATA LOCAL INFILE 'municipios.csv'
-INTO TABLE staging_municipios
+IGNORE INTO TABLE Regiones
 CHARACTER SET utf8mb4
 FIELDS TERMINATED BY ','
-LINES TERMINATED BY '\n'
+OPTIONALLY ENCLOSED BY '"'
+LINES TERMINATED BY '\r\n'
 IGNORE 1 ROWS
-(region, departamento_id, departamento_nombre, municipio_id, municipio_nombre);
+(
+    @region,
+    @cod_departamento,
+    @departamento,
+    @cod_municipio,
+    @municipio
+)
+SET nombre_region = TRIM(@region);
 
--- Corrige las 2 filas del departamento 88, mal formadas en el CSV origen (ver README)
-UPDATE staging_municipios
-SET region = 'Región Caribe',
-	departamento_nombre = 'Archipiélago de San Andrés, Providencia y Santa Catalina',
-	municipio_id = municipio_nombre,
-	municipio_nombre = 'Providencia'
-WHERE departamento_id = '88' AND municipio_nombre = '88.564';
+-- ============================================================
+-- 2. ELIMINAR LAS DOS FILAS MAL INTERPRETADAS
+-- ============================================================
+DELETE FROM Regiones
+WHERE nombre_region LIKE 'Región Caribe,88,%';
 
-UPDATE staging_municipios
-SET region = 'Región Caribe',
-	departamento_nombre = 'Archipiélago de San Andrés, Providencia y Santa Catalina',
-	municipio_id = municipio_nombre,
-	municipio_nombre = 'San Andrés'
-WHERE departamento_id = '88' AND municipio_nombre = '88.001';
+-- ============================================================
+-- 3. CARGAR DEPARTAMENTOS
+-- ============================================================
+LOAD DATA LOCAL INFILE 'municipios.csv'
+IGNORE INTO TABLE Departamentos
+CHARACTER SET utf8mb4
+FIELDS TERMINATED BY ','
+OPTIONALLY ENCLOSED BY '"'
+LINES TERMINATED BY '\r\n'
+IGNORE 1 ROWS
+(
+    @region,
+    @cod_departamento,
+    @departamento,
+    @cod_municipio,
+    @municipio
+)
+SET
+    codigo_dane_departamento = TRIM(@cod_departamento),
+    nombre_departamento = TRIM(@departamento),
+    region_id = (
+        SELECT id
+        FROM Regiones
+        WHERE nombre_region = TRIM(@region) COLLATE utf8mb4_unicode_ci
+        LIMIT 1
+    );
 
--- Poblar regiones
-INSERT INTO regiones (nombre)
-SELECT DISTINCT region FROM staging_municipios;
+-- ============================================================
+-- 4. CARGAR MUNICIPIOS
+-- ============================================================
+LOAD DATA LOCAL INFILE 'municipios.csv'
+IGNORE INTO TABLE Municipios
+CHARACTER SET utf8mb4
+FIELDS TERMINATED BY ','
+OPTIONALLY ENCLOSED BY '"'
+LINES TERMINATED BY '\r\n'
+IGNORE 1 ROWS
+(
+    @region,
+    @cod_departamento,
+    @departamento,
+    @cod_municipio,
+    @municipio
+)
+SET
+    codigo_dane_municipio = TRIM(@cod_municipio),
+    nombre_municipio = TRIM(@municipio),
+    departamento_id = (
+        SELECT id
+        FROM Departamentos
+        WHERE codigo_dane_departamento = TRIM(@cod_departamento) COLLATE utf8mb4_unicode_ci
+        LIMIT 1
+    );
 
--- Poblar departamentos
-INSERT INTO departamentos (departamento_id, nombre, region_id)
-SELECT DISTINCT s.departamento_id, s.departamento_nombre, r.region_id
-FROM staging_municipios s
-JOIN regiones r ON r.nombre = s.region;
+-- ============================================================
+-- 4b. ELIMINAR FILAS BASURA GENERADAS POR LA LÍNEA MAL FORMADA
+--     DEL DEPARTAMENTO 88 (quedan con todos los campos en NULL)
+-- ============================================================
+DELETE FROM Municipios WHERE codigo_dane_municipio IS NULL;
+DELETE FROM Departamentos WHERE codigo_dane_departamento IS NULL;
 
--- Poblar municipios
-INSERT INTO municipios (municipio_id, nombre, departamento_id)
-SELECT DISTINCT s.municipio_id, s.municipio_nombre, s.departamento_id
-FROM staging_municipios s;
+-- ============================================================
+-- 5. SAN ANDRÉS (DEPARTAMENTO)
+-- ============================================================
+INSERT IGNORE INTO Departamentos
+    (codigo_dane_departamento, nombre_departamento, region_id)
+SELECT
+    '88',
+    'Archipiélago de San Andrés, Providencia y Santa Catalina',
+    id
+FROM Regiones
+WHERE nombre_region = 'Región Caribe'
+LIMIT 1;
 
-DROP TABLE staging_municipios;
+-- ============================================================
+-- 6. PROVIDENCIA (MUNICIPIO)
+-- ============================================================
+INSERT IGNORE INTO Municipios
+    (codigo_dane_municipio, nombre_municipio, departamento_id)
+SELECT
+    '88.564',
+    'Providencia',
+    id
+FROM Departamentos
+WHERE codigo_dane_departamento = '88'
+LIMIT 1;
+
+-- ============================================================
+-- 7. SAN ANDRÉS (MUNICIPIO)
+-- ============================================================
+INSERT IGNORE INTO Municipios
+    (codigo_dane_municipio, nombre_municipio, departamento_id)
+SELECT
+    '88.001',
+    'San Andrés',
+    id
+FROM Departamentos
+WHERE codigo_dane_departamento = '88'
+LIMIT 1;
+
+-- ============================================================
+-- 8. VERIFICACIÓN
+-- ============================================================
+SELECT COUNT(*) AS total_regiones FROM Regiones;
+SELECT COUNT(*) AS total_departamentos FROM Departamentos;
+SELECT COUNT(*) AS total_municipios FROM Municipios;

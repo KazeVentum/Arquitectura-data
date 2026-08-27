@@ -1,23 +1,35 @@
--- Creación de la base de datos y sus tablas
+-- 1. Creación de la Base de Datos con soporte para español
+CREATE DATABASE colombia CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE colombia;
 
-CREATE DATABASE IF NOT EXISTS municipios;
-USE municipios;
-
-CREATE TABLE regiones (
-	region_id INT AUTO_INCREMENT PRIMARY KEY,
-	nombre VARCHAR (50) NOT NULL UNIQUE
+-- 2. Creación de Tablas con tamaños optimizados
+CREATE TABLE `Regiones` (
+  `id` int PRIMARY KEY AUTO_INCREMENT,
+  `nombre_region` varchar(50) -- 50 es suficiente para "Región Andina", etc.
 );
 
-CREATE TABLE departamentos (
-	departamento_id VARCHAR (2) PRIMARY KEY,
-	nombre VARCHAR (60) NOT NULL,
-	region_id INT NOT NULL,
-	FOREIGN KEY (region_id) REFERENCES regiones (region_id)
+CREATE TABLE `Departamentos` (
+  `id` int PRIMARY KEY AUTO_INCREMENT,
+  `codigo_dane_departamento` varchar(5), -- Optimizamos el tamaño
+  `nombre_departamento` varchar(100),
+  `region_id` int
 );
 
-CREATE TABLE municipios (
-	municipio_id VARCHAR (10) PRIMARY KEY,
-	nombre VARCHAR (30) NOT NULL,
-	departamento_id VARCHAR (2) NOT NULL,
-	FOREIGN KEY (departamento_id) REFERENCES departamentos (departamento_id)
+CREATE TABLE `Municipios` (
+  `id` int PRIMARY KEY AUTO_INCREMENT,
+  `codigo_dane_municipio` varchar(10), -- Optimizamos el tamaño
+  `nombre_municipio` varchar(100),
+  `departamento_id` int
 );
+
+-- 3. Definición de Llaves Foráneas (Relaciones)
+ALTER TABLE `Departamentos` 
+ADD FOREIGN KEY (`region_id`) REFERENCES `Regiones` (`id`);
+
+ALTER TABLE `Municipios` 
+ADD FOREIGN KEY (`departamento_id`) REFERENCES `Departamentos` (`id`);
+
+-- 4. VITAL: Restricciones Únicas para evitar duplicados en el LOAD DATA
+ALTER TABLE `Regiones` ADD UNIQUE (`nombre_region`);
+ALTER TABLE `Departamentos` ADD UNIQUE (`codigo_dane_departamento`);
+ALTER TABLE `Municipios` ADD UNIQUE (`codigo_dane_municipio`);
