@@ -74,7 +74,7 @@ cat > "$PROJECT_DIR/notebook/ppythonPrueba.ipynb" <<'EOF'
     "# Consulta a la BD `colombia` (municipios) desde Python\n",
     "\n",
     "Requiere el contenedor **`colombia-mysql`** levantado (lo hace este mismo `run.sh`, o `docker compose up -d` en `exercise-01/docker/`).\n",
-    "El puerto 3306 del contenedor está publicado en el host, por eso se conecta a `127.0.0.1:3306`."
+    "El puerto 3307 del host mapea al 3306 del contenedor, por eso se conecta a `127.0.0.1:3307`."
    ]
   },
   {
@@ -88,7 +88,7 @@ cat > "$PROJECT_DIR/notebook/ppythonPrueba.ipynb" <<'EOF'
     "\n",
     "conexion = mysql.connector.connect(\n",
     "    host=\"127.0.0.1\",\n",
-    "    port=3306,\n",
+    "    port=3307,\n",
     "    user=\"root\",\n",
     "    password=\"root\",\n",
     "    database=\"colombia\",\n",

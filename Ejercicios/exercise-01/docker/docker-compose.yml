@@ -6,7 +6,8 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: root
     ports:
-      - "3306:3306"
+      # 3307 en el host para no chocar con un MySQL local ya instalado
+      - "3307:3306"
     volumes:
       - ..:/scripts:ro
       - db-data:/var/lib/mysql

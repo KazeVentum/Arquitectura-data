@@ -88,11 +88,13 @@ docker compose down -v
 2. Crea el entorno virtual `ppythonPrueba/.venv` e instala esas dependencias.
 3. Registra el kernel de Jupyter `ppythonprueba` ("Python (ppythonPrueba)").
 4. Genera `notebook/ppythonPrueba.ipynb` con celdas que se conectan a la BD `colombia`
-   del contenedor (`127.0.0.1:3306`, `root`/`root`) y ejecutan consultas con
+   del contenedor (`127.0.0.1:3307`, `root`/`root`) y ejecutan consultas con
    `pandas.read_sql`.
 
-El notebook se conecta al puerto 3306 publicado por `docker-compose.yml`, así que el
-contenedor debe estar levantado (lo hace el propio `run.sh`).
+El `docker-compose.yml` publica el puerto **3307** del host (mapeado al 3306 del
+contenedor) para no chocar con un MySQL ya instalado localmente; por eso el notebook
+se conecta a `127.0.0.1:3307`. El contenedor debe estar levantado (lo hace el propio
+`run.sh`).
 
 ```
 cd ppythonPrueba
