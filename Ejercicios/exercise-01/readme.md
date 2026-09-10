@@ -77,3 +77,26 @@ docker compose down -v
 - 33 departamentos
 - 1123 municipios
 - 0 filas huérfanas (municipio sin departamento, departamento sin región)
+
+## Consulta desde Python (`ppythonPrueba/`)
+
+`run.sh` (y `run.bat`) además de levantar la BD reconstruyen desde cero el proyecto
+`ppythonPrueba/` dentro de este directorio:
+
+1. Crea la estructura `src/{datasets,controller,persistence,model,view}`, `notebook/`,
+   `main.py` y `requirements.txt` (`notebook`, `ipykernel`, `pandas`, `mysql-connector-python`).
+2. Crea el entorno virtual `ppythonPrueba/.venv` e instala esas dependencias.
+3. Registra el kernel de Jupyter `ppythonprueba` ("Python (ppythonPrueba)").
+4. Genera `notebook/ppythonPrueba.ipynb` con celdas que se conectan a la BD `colombia`
+   del contenedor (`127.0.0.1:3306`, `root`/`root`) y ejecutan consultas con
+   `pandas.read_sql`.
+
+El notebook se conecta al puerto 3306 publicado por `docker-compose.yml`, así que el
+contenedor debe estar levantado (lo hace el propio `run.sh`).
+
+```
+cd ppythonPrueba
+.venv/bin/jupyter notebook notebook/ppythonPrueba.ipynb
+```
+
+Para recrear el entorno desde cero, borra `ppythonPrueba/.venv` y vuelve a correr `run.sh`.
