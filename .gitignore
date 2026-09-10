@@ -1,0 +1,8 @@
+# macOS
+.DS_Store
+
+# Entornos virtuales de Python
+.venv/
+
+# Proyecto ppythonPrueba: lo reconstruye Ejercicios/exercise-01/run.sh
+ppythonPrueba/
